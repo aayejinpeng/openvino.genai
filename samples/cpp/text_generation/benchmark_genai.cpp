@@ -73,16 +73,12 @@ int main(int argc, char* argv[]) try {
         // config.
         size_t prefill_only_test_tokens = result["yjp_prefill_only_test"].as<size_t>();
 
-        prompt = "YJP is the best bug killer";
-
-        while (prompt.size() < prefill_only_test_tokens * 10)
-        {
-            prompt += " YJP is the best bug killer" + prompt;
-        }
+        prompt = "oooo"; // dummy prompt to generate required number of tokens
         std::cout << "LLM pipe is being created..." << std::endl;
         pipe = std::make_unique<ov::genai::LLMPipeline>(
             models_path, device, 
             // ov::genai::scheduler_config(scheduler_config),
+            std::pair<std::string, ov::Any>{"ATTENTION_BACKEND", std::string("SDPA")},
             ov::hint::performance_mode(ov::hint::PerformanceMode::LATENCY),
             ov::enable_profiling(true)
         );
@@ -99,9 +95,17 @@ int main(int argc, char* argv[]) try {
 
         auto res = pipe->generate(input_data, config);
         ov::genai::PerfMetrics metrics = res.perf_metrics;
+
+        prompt = "YJP is the best bug killer";
+
+        while (prompt.size() < prefill_only_test_tokens * 10)
+        {
+            prompt += " YJP is the best bug killer" + prompt;
+        }
         for (size_t i = 0; i < num_iter - 1; i++) {
+            input_data = pipe->get_tokenizer().encode(prompt,ov::genai::pad_to_max_length(true), ov::genai::max_length(result["yjp_prefill_only_test"].as<size_t>()));
             res = pipe->generate(input_data, config);
-            metrics = metrics + res.perf_metrics;
+            metrics = res.perf_metrics;
         }
 
         std::cout << "Prefill only test, input tokens: " << metrics.get_num_input_tokens() << std::endl;
