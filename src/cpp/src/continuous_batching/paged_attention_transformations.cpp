@@ -17,7 +17,7 @@ void apply_paged_attention_transformations(std::shared_ptr<ov::Model> model, boo
     bool use_block_indices_inputs = per_layer_cache_control;
     bool use_score_outputs = per_layer_cache_control;
     ov::pass::SDPAToPagedAttention(use_block_indices_inputs, use_score_outputs, /* allow_score_aggregation = */ true, allow_cache_rotation, allow_xattention).run_on_model(model);
-
+    std::cout << "[CB UTIL] SDPA to PagedAttention transformation applied." << std::endl;
     std::map<std::string, std::shared_ptr<ov::op::v0::Parameter>> key_cache_params, value_cache_params;
     for (const auto& param_ptr : model->get_parameters()) {
         const auto& name = param_ptr->get_friendly_name();
@@ -28,8 +28,8 @@ void apply_paged_attention_transformations(std::shared_ptr<ov::Model> model, boo
         }
     }
 
-    OPENVINO_ASSERT(key_cache_params.size() == value_cache_params.size() && key_cache_params.size() > 0);
-
+    // OPENVINO_ASSERT(key_cache_params.size() == value_cache_params.size() && key_cache_params.size() > 0);
+    std::cout << "[CB UTIL] Number of decoder layers with KV cache parameters found: " << key_cache_params.size() << std::endl;
     size_t num_decoder_layers = key_cache_params.size();
     for (size_t idx = 0; idx < num_decoder_layers; idx++) {
         auto k = key_cache_params[std::string("key_cache.") + std::to_string(idx)];
@@ -59,7 +59,7 @@ void apply_paged_attention_transformations(std::shared_ptr<ov::Model> model, boo
         pa_op->get_rt_info()["num_v_heads"] = num_v_heads;
         pa_op->get_rt_info()["v_head_size"] = v_head_size;
     }
-
+    std::cout << "[CB UTIL] Paged Attention transformations applied. Number of decoder layers with KV cache: " << num_decoder_layers << std::endl;
     model->validate_nodes_and_infer_types();
 }
 

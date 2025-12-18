@@ -162,6 +162,14 @@ public:
      */
     ov::genai::PipelineMetrics get_metrics() const;
 
+    /**
+     * @brief Get the underlying InferRequest for low-level profiling (advanced usage).
+     * This is useful for calling InferRequest::get_profiling_info() to get per-layer execution times.
+     * Note: profiling should be enabled via compile flags or environment variables.
+     * @return Pointer to the InferRequest used internally, or nullptr if not available.
+     */
+    ov::InferRequest* get_infer_request() const;
+
     /// @param request_id must be unique for every add_request() call.
     GenerationHandle add_request(uint64_t request_id, const ov::Tensor& input_ids, const ov::genai::GenerationConfig& sampling_params);
     GenerationHandle add_request(uint64_t request_id, const std::string& prompt, const ov::genai::GenerationConfig& sampling_params);

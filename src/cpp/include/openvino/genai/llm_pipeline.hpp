@@ -323,6 +323,26 @@ public:
     GenerationConfig get_generation_config() const;
     void set_generation_config(const GenerationConfig& config);
 
+    /**
+    * @brief Return the concrete backend name in use (e.g., "StatefulLLMPipeline" or "ContinuousBatchingAdapter").
+    */
+    std::string backend_name() const;
+
+    /**
+    * @brief Get the underlying InferRequest for low-level profiling (advanced usage).
+    * Returns nullptr for backends that don't expose InferRequest (e.g., ContinuousBatchingAdapter in some cases).
+    * Use this to call InferRequest::get_profiling_info() for per-layer execution times.
+    * 
+    * Example:
+    *   auto* req = pipe->get_infer_request();
+    *   if (req) {
+    *       auto prof_info = req->get_profiling_info();
+    *       for (const auto& node : prof_info) {
+    *           std::cout << node.node_name << ": " << node.real_time << " us\n";
+    *       }
+    *   }
+    */
+    ov::InferRequest* get_infer_request() const;
 
     /**
     * @brief start chat with keeping history in kv cache.

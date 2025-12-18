@@ -263,6 +263,13 @@ public:
     void finish_chat() override {
         m_impl->finish_chat();
     }
+
+    const char* backend_name() const override { return "ContinuousBatchingAdapter"; }
+
+    // Expose InferRequest for profiling from continuous batching pipeline
+    ov::InferRequest* get_infer_request() override {
+        return m_impl ? m_impl->get_infer_request() : nullptr;
+    }
 };
 
 } // namespace ov::genai

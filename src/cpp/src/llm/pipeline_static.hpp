@@ -63,6 +63,8 @@ public:
     void finish_chat() override;
     ~StatefulLLMPipeline();
 
+    const char* backend_name() const override { return "StaticStatefulLLMPipeline"; }
+
 private:
     uint32_t m_max_prompt_len = 0u;
     uint32_t m_kvcache_total = 0u;

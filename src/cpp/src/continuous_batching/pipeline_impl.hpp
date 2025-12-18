@@ -144,5 +144,13 @@ public:
     void set_adapters(const std::optional<AdapterConfig>& adapters);
 
     std::vector<SequenceGroup::Ptr> get_awaiting_requests();
+
+    // Return the underlying InferRequest from ModelRunner for profiling
+    ov::InferRequest* get_infer_request() override {
+        if (m_model_runner) {
+            return m_model_runner->get_infer_request_ptr();
+        }
+        return nullptr;
+    }
 };
 } // namespace ov::genai

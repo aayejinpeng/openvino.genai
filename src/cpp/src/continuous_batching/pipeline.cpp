@@ -229,6 +229,10 @@ PipelineMetrics ContinuousBatchingPipeline::get_metrics() const{
     return m_impl->get_metrics();
 }
 
+ov::InferRequest* ContinuousBatchingPipeline::get_infer_request() const {
+    return m_impl ? m_impl->get_infer_request() : nullptr;
+}
+
 GenerationHandle ContinuousBatchingPipeline::add_request(uint64_t request_id, const std::string& prompt, const ov::genai::GenerationConfig& sampling_params) {
     return m_impl->add_request(request_id, prompt, sampling_params);
 }

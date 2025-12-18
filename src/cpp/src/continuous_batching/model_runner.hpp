@@ -107,6 +107,13 @@ public:
         return m_request;
     }
 
+    /**
+     * @return Pointer to the underlying ov::InferRequest for profiling.
+     */
+    ov::InferRequest* get_infer_request_ptr() {
+        return &m_request;
+    }
+
     void set_inputs_embedder(const std::shared_ptr<InputsEmbedder>& inputs_embedder) {
         m_inputs_embedder = inputs_embedder;
         m_embedding = inputs_embedder->get_embedding_model();

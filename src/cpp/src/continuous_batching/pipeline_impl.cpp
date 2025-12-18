@@ -21,6 +21,55 @@
 
 namespace {
 
+// ---- Parameter registration tracing (enabled by OV_GENAI_PARAM_TRACE) ----
+#include <unordered_set>
+#include <iostream>
+#include "openvino/op/parameter.hpp"
+
+bool cb_param_trace_enabled() {
+    const char* v = std::getenv("OV_GENAI_PARAM_TRACE");
+    if (!v) return false;
+    return std::string(v) != "0";
+}
+
+void cb_dump_model_parameters(const std::shared_ptr<ov::Model>& model, const std::string& tag) {
+    if (!cb_param_trace_enabled() || !model)
+        return;
+
+    std::cout << "\n[PARAM TRACE][CB] " << tag << std::endl;
+
+    std::unordered_set<const ov::Node*> registered;
+    std::cout << "[PARAM TRACE][CB] Registered parameters:" << std::endl;
+    for (const auto& p : model->get_parameters()) {
+        registered.insert(p.get());
+        std::cout << "  - " << p->get_friendly_name()
+                  << " : " << p->get_element_type() << " " << p->get_partial_shape() << std::endl;
+    }
+
+    std::cout << "[PARAM TRACE][CB] Parameters found in graph (ordered ops):" << std::endl;
+    auto ordered = model->get_ordered_ops();
+    for (const auto& n : ordered) {
+        if (std::dynamic_pointer_cast<ov::op::v0::Parameter>(n)) {
+            std::cout << "  * " << n->get_friendly_name()
+                      << " : " << n->get_element_type() << " " << n->get_output_partial_shape(0) << std::endl;
+        }
+    }
+
+    std::cout << "[PARAM TRACE][CB] UNREGISTERED parameters:" << std::endl;
+    bool any_unregistered = false;
+    for (const auto& n : ordered) {
+        if (std::dynamic_pointer_cast<ov::op::v0::Parameter>(n) && !registered.count(n.get())) {
+            any_unregistered = true;
+            std::cout << "  ! " << n->get_friendly_name()
+                      << " : " << n->get_element_type() << " " << n->get_output_partial_shape(0) << std::endl;
+        }
+    }
+    if (!any_unregistered) {
+        std::cout << "  (none)" << std::endl;
+    }
+    std::cout << "[PARAM TRACE][CB] ==============================\n" << std::endl;
+}
+
 // Returns available RAM memory on system if possible, otherwise returns std::numeric_limits<std::streamsize>::max()
 size_t get_available_cpu_memory() {
 #ifdef __APPLE__ 
@@ -73,11 +122,18 @@ ContinuousBatchingPipeline::ContinuousBatchingImpl::ContinuousBatchingImpl(
     m_generation_config = generation_config;
     m_is_validation_mode_enabled = is_validation_mode_enabled;
 
+    std::cout << "[CB PIPELINE] Initializing Continuous Batching Pipeline..." << std::endl;
+    cb_dump_model_parameters(model, "after model provided");
+
     bool is_need_per_layer_cache_control = scheduler_config.use_cache_eviction;
     bool allow_cache_rotation = scheduler_config.cache_eviction_config.apply_rotation;
     bool allow_xattention = scheduler_config.use_sparse_attention && scheduler_config.sparse_attention_config.mode == SparseAttentionMode::XATTENTION;
+    std::cout << "[CB PIPELINE] Applying CB transformations"  << std::endl;
     utils::apply_paged_attention_transformations(model, is_need_per_layer_cache_control, allow_cache_rotation, allow_xattention);
+    std::cout << "[CB PIPELINE] Applying gather before matmul transformation" << std::endl;
     utils::apply_gather_before_matmul_transformation(model);
+
+    cb_dump_model_parameters(model, "after CB transformations");
 
     initialize_pipeline(model, scheduler_config, device, properties);
 }
@@ -135,7 +191,10 @@ void ContinuousBatchingPipeline::ContinuousBatchingImpl::initialize_pipeline(
         filtered_properties.fork().erase("sampler_num_threads");   // do not use iterator sampler_num_threads_it because a forked container may not be the same container
     }
 
+    cb_dump_model_parameters(model, "before CB compile_model");
+    std::cout << "[CB PIPELINE] Compiling model for device: " << device << " ..." << std::endl;
     ov::CompiledModel compiled_model = utils::singleton_core().compile_model(model, device, *filtered_properties);
+    std::cout << "[CB PIPELINE] Model compiled." << std::endl;
     std::vector<std::string> execution_devices = compiled_model.get_property(ov::execution_devices);
     const bool all_gpu_device =
         std::all_of(execution_devices.begin(), execution_devices.end(), [&](const std::string& device) {

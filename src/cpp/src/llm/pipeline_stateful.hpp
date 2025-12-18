@@ -92,6 +92,11 @@ public:
     void finish_chat() override;
 
     ~StatefulLLMPipeline();
+
+    const char* backend_name() const override { return "StatefulLLMPipeline"; }
+
+    // Expose InferRequest for profiling
+    ov::InferRequest* get_infer_request() override { return &m_model_runner; }
 };
 
 } // namespace ov::genai

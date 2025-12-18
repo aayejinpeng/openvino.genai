@@ -364,6 +364,14 @@ ov::genai::Tokenizer ov::genai::LLMPipeline::get_tokenizer() {
     return m_pimpl->get_tokenizer();
 }
 
+std::string ov::genai::LLMPipeline::backend_name() const {
+    return m_pimpl ? std::string(m_pimpl->backend_name()) : std::string("None");
+}
+
+ov::InferRequest* ov::genai::LLMPipeline::get_infer_request() const {
+    return m_pimpl ? m_pimpl->get_infer_request() : nullptr;
+}
+
 void ov::genai::LLMPipeline::start_chat(const std::string& system_message) {
     m_pimpl->start_chat(system_message);
 }

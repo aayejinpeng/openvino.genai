@@ -171,6 +171,12 @@ public:
      */
     void finish_chat();
 
+    /**
+     * Get the underlying InferRequest for low-level profiling.
+     * Returns nullptr if not available.
+     */
+    virtual ov::InferRequest* get_infer_request() { return nullptr; }
+
     ~IContinuousBatchingPipeline();
 };
 }

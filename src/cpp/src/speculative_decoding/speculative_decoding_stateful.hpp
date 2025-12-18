@@ -106,6 +106,8 @@ public:
 
     void finish_chat() override;
 
+    const char* backend_name() const override { return "StatefulSpeculativeLLMPipeline"; }
+
     ov::genai::SpeculativeDecodingMetrics
     get_speculative_decoding_metrics() const;
 

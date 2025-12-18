@@ -60,6 +60,13 @@ public:
     virtual void start_chat(const std::string& system_message) = 0;
     virtual void finish_chat() = 0;
 
+    // Returns the concrete backend name for diagnostics
+    virtual const char* backend_name() const = 0;
+
+    // Optional: return pointer to underlying InferRequest for advanced profiling.
+    // Returns nullptr if not applicable (e.g., some backend implementations).
+    virtual ov::InferRequest* get_infer_request() { return nullptr; }
+
     virtual ~LLMPipelineImplBase() = default;
 
     void save_load_time(std::chrono::steady_clock::time_point start_time) {
