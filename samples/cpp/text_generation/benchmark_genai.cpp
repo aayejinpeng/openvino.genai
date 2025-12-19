@@ -4,6 +4,7 @@
 #include "openvino/genai/llm_pipeline.hpp"
 #include <cxxopts.hpp>
 #include "read_prompt_from_file.h"
+#include <fstream>
 #include <typeinfo>
 
 int main(int argc, char* argv[]) try {
@@ -18,6 +19,7 @@ int main(int argc, char* argv[]) try {
     ("mt,max_new_tokens", "Maximal number of new tokens", cxxopts::value<size_t>()->default_value(std::to_string(20)))
     ("d,device", "device", cxxopts::value<std::string>()->default_value("CPU"))
     ("yjp,yjp_prefill_only_test", "test prefill for tokens/s", cxxopts::value<size_t>()->default_value(std::to_string(-1)))
+    ("log_file", "Log file path", cxxopts::value<std::string>()->default_value("benchmark_log.csv"))
     ("h,help", "Print usage");
 
     cxxopts::ParseResult result;
@@ -124,28 +126,30 @@ int main(int argc, char* argv[]) try {
         auto* infer_req = pipe->get_infer_request();
         if (infer_req) {
             try {
-                auto prof_info = infer_req->get_profiling_info();
-                if (!prof_info.empty()) {
-                    std::cout << "\n=== Per-layer Profiling Info ===" << std::endl;
-                    std::cout << std::left << std::setw(100) << "Layer Name" 
-                              << std::right << std::setw(15) << "Time (ms)" << std::endl;
-                    std::cout << std::string(115, '-') << std::endl;
-                    double total_time = 0.0;
-                    for (const auto& layer : prof_info) {
-                        // layer.real_time is in microseconds as duration, convert to milliseconds
-                        double time_ms = layer.real_time.count() / 1000.0;
-                        total_time += time_ms;
-                        std::cout << std::left << std::setw(100) << layer.node_name
-                                  << std::right << std::setw(15) << std::fixed << std::setprecision(3) << time_ms
-                                  << std::endl;
-                    }
-                    std::cout << std::string(115, '-') << std::endl;
-                    std::cout << std::left << std::setw(100) << "TOTAL"
-                              << std::right << std::setw(15) << std::fixed << std::setprecision(3) << total_time
-                              << std::endl;
+            auto prof_info = infer_req->get_profiling_info();
+            if (!prof_info.empty()) {
+                std::ofstream log_file(result["log_file"].as<std::string>());
+                log_file << "\n=== Per-layer Profiling Info ===" << std::endl;
+                log_file << std::left << std::setw(100) << "Layer Name" 
+                      << std::right << std::setw(15) << "Time (ms)" << std::endl;
+                log_file << std::string(115, '-') << std::endl;
+                double total_time = 0.0;
+                for (const auto& layer : prof_info) {
+                // layer.real_time is in microseconds as duration, convert to milliseconds
+                double time_ms = layer.real_time.count() / 1000.0;
+                total_time += time_ms;
+                log_file << std::left << std::setw(100) << layer.node_name
+                      << std::right << std::setw(15) << std::fixed << std::setprecision(3) << time_ms
+                      << std::endl;
                 }
+                log_file << std::string(115, '-') << std::endl;
+                log_file << std::left << std::setw(100) << "TOTAL"
+                      << std::right << std::setw(15) << std::fixed << std::setprecision(3) << total_time
+                      << std::endl;
+                log_file.close();
+            }
             } catch (const std::exception& e) {
-                std::cout << "Note: Profiling info not available: " << e.what() << std::endl;
+            std::cout << "Note: Profiling info not available: " << e.what() << std::endl;
             }
         }
 
