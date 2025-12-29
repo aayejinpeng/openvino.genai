@@ -120,7 +120,7 @@ int main(int argc, char* argv[]) try {
         std::cout << "Detokenization time: " << metrics.get_detokenization_duration().mean << " ± " << metrics.get_detokenization_duration().std << " ms" << std::endl;
         std::cout << "TTFT: " << metrics.get_ttft().mean  << " ± " << metrics.get_ttft().std << " ms" << std::endl;
         std::cout << "TPOT: " << metrics.get_tpot().mean  << " ± " << metrics.get_tpot().std << " ms/token " << std::endl;
-        std::cout << "Throughput: " << metrics.get_throughput().mean  << " ± " << metrics.get_throughput().std << " tokens/s" << std::endl;
+        std::cout << "Throughput: " << metrics.get_num_input_tokens()/metrics.get_ttft().mean * 1000 << " tokens/s" << std::endl;
 
                 // Print per-layer profiling info if available
         auto* infer_req = pipe->get_infer_request();
